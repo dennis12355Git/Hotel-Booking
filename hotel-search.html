@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅宿搜查站</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1209;
+    --paper: #f5f0e8;
+    --sand: #e8dfc8;
+    --amber: #c8921a;
+    --rust: #8b3a1c;
+    --sage: #5a7a5c;
+    --cream: #faf7f0;
+    --shadow: rgba(26,18,9,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Noto Serif TC', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Textured background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(26,18,9,0.015) 40px, rgba(26,18,9,0.015) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(26,18,9,0.01) 60px, rgba(26,18,9,0.01) 61px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  header {
+    position: relative;
+    padding: 48px 40px 32px;
+    border-bottom: 2px solid var(--ink);
+    z-index: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .logo-block {}
+  .logo-en {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(40px, 6vw, 72px);
+    font-weight: 300;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .logo-zh {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--rust);
+    margin-top: 6px;
+    font-weight: 400;
+  }
+
+  .header-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    padding: 6px 12px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  /* Main layout */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* Search Panel */
+  .search-panel {
+    background: var(--cream);
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+    padding: 40px;
+    box-shadow: 6px 6px 0 var(--ink);
+    margin-bottom: 48px;
+    animation: slideUp 0.6s ease both;
+  }
+
+  @keyframes slideUp {
+    from { opacity:0; transform: translateY(20px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+
+  .panel-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    border-bottom: 1px solid var(--sand);
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+    color: var(--rust);
+  }
+
+  /* Form grid */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 32px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-group.full { grid-column: 1 / -1; }
+
+  .form-group.dates {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--rust);
+    font-weight: 700;
+  }
+
+  input, select, textarea {
+    background: var(--paper);
+    border: 1.5px solid rgba(26,18,9,0.3);
+    border-radius: 2px;
+    padding: 12px 16px;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 14px;
+    color: var(--ink);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px rgba(200,146,26,0.15);
+  }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b3a1c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+    cursor: pointer;
+  }
+
+  .guests-row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .counter {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1.5px solid rgba(26,18,9,0.3);
+    border-radius: 2px;
+    overflow: hidden;
+    flex: 1;
+  }
+  .counter-btn {
+    background: var(--sand);
+    border: none;
+    width: 36px;
+    height: 44px;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--ink);
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .counter-btn:hover { background: var(--amber); color: white; }
+  .counter-val {
+    flex: 1;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    background: var(--paper);
+    border: none;
+    height: 44px;
+    line-height: 44px;
+    min-width: 0;
+    pointer-events: none;
+  }
+
+  /* Platforms */
+  .platforms-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .platform-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1.5px solid rgba(26,18,9,0.25);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--paper);
+    user-select: none;
+  }
+
+  .platform-chip input[type="checkbox"],
+  .platform-chip input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .platform-chip:hover {
+    border-color: var(--amber);
+    background: rgba(200,146,26,0.06);
+  }
+
+  .platform-chip.active {
+    border-color: var(--amber);
+    background: rgba(200,146,26,0.12);
+    color: var(--rust);
+    font-weight: 600;
+  }
+
+  .platform-chip .chip-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid rgba(26,18,9,0.3);
+    border-radius: 3px;
+    background: var(--paper);
+    flex-shrink: 0;
+    transition: all 0.15s;
+    font-size: 10px;
+    color: transparent;
+  }
+
+  .platform-chip.active .chip-check {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: white;
+  }
+
+  /* radio chip checkmark circle */
+  .platform-chip .chip-radio {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid rgba(26,18,9,0.3);
+    border-radius: 50%;
+    background: var(--paper);
+    flex-shrink: 0;
+    transition: all 0.15s;
+    font-size: 10px;
+    color: transparent;
+  }
+
+  .platform-chip.active .chip-radio {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: white;
+  }
+
+  /* Search button */
+  .search-btn {
+    margin-top: 28px;
+    width: 100%;
+    padding: 18px 32px;
+    background: var(--ink);
+    color: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .search-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--amber);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 0;
+  }
+
+  .search-btn:hover::after { transform: translateX(0); }
+  .search-btn:hover { color: var(--ink); border-color: var(--amber); }
+  .search-btn span { position: relative; z-index: 1; }
+
+  .search-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .search-btn:disabled::after { display: none; }
+
+  /* Loading */
+  .loading-bar {
+    display: none;
+    margin-top: 24px;
+    height: 3px;
+    background: var(--sand);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .loading-bar.active { display: block; }
+  .loading-bar::after {
+    content: '';
+    display: block;
+    width: 40%;
+    height: 100%;
+    background: var(--amber);
+    border-radius: 99px;
+    animation: loading 1.2s ease-in-out infinite;
+  }
+  @keyframes loading {
+    0% { margin-left: -40%; }
+    100% { margin-left: 140%; }
+  }
+
+  /* Results */
+  .results-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .results-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  .results-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--rust);
+    letter-spacing: 1px;
+  }
+
+  /* Sort */
+  .sort-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .sort-btn {
+    padding: 7px 16px;
+    border: 1.5px solid rgba(26,18,9,0.2);
+    border-radius: 2px;
+    background: var(--paper);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--ink);
+  }
+  .sort-btn:hover { border-color: var(--amber); }
+  .sort-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  /* Hotel cards */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+
+  .hotel-card {
+    background: var(--cream);
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: 4px 4px 0 var(--sand);
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: fadeCard 0.5s ease both;
+    display: flex;
+    flex-direction: column;
+  }
+
+  @keyframes fadeCard {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hotel-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 7px 7px 0 var(--amber);
+  }
+
+  .card-img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    background: var(--sand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+  }
+
+  .card-body {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-platform {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+
+  .card-name {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+
+  .card-location {
+    font-size: 12px;
+    color: rgba(26,18,9,0.55);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .card-stars {
+    color: var(--amber);
+    font-size: 12px;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .tag {
+    background: var(--sand);
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-size: 11px;
+    color: rgba(26,18,9,0.7);
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--sand);
+  }
+
+  .card-price-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: rgba(26,18,9,0.45);
+    margin-bottom: 2px;
+  }
+
+  .card-price {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--rust);
+    line-height: 1;
+  }
+
+  .card-price small {
+    font-size: 13px;
+    font-weight: 300;
+    color: rgba(26,18,9,0.5);
+  }
+
+  .card-btn {
+    padding: 9px 18px;
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--ink);
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-block;
+  }
+  .card-btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .rating-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--sage);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 2px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 64px 24px;
+    color: rgba(26,18,9,0.4);
+  }
+  .empty-icon { font-size: 56px; margin-bottom: 16px; }
+  .empty-text { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-style: italic; }
+
+  /* Error */
+  .error-msg {
+    background: rgba(139,58,28,0.08);
+    border: 1.5px solid var(--rust);
+    border-radius: 2px;
+    padding: 16px 20px;
+    color: var(--rust);
+    font-size: 13px;
+    margin-top: 20px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    header { padding: 32px 20px 24px; }
+    .search-panel { padding: 24px 20px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.dates { grid-template-columns: 1fr; gap: 20px; }
+    main { padding: 32px 16px 60px; }
+    .cards-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-block">
+    <div class="logo-en">Hotel Scout</div>
+    <div class="logo-zh">旅宿搜查站　一站比較各大訂房平台</div>
+  </div>
+  <div class="header-tag">AI Powered Search</div>
+</header>
+
+<main>
+
+  <!-- Search Panel -->
+  <div class="search-panel">
+    <div class="panel-title">✦ 搜尋條件</div>
+
+    <div class="form-grid">
+
+      <div class="form-group full">
+        <label>目的地 / 城市</label>
+        <input type="text" id="destination" placeholder="例：台北信義區、日本 東京 池袋、Bali Ubud…" />
+      </div>
+
+      <div class="form-group dates">
+        <div class="form-group">
+          <label>入住日期</label>
+          <input type="date" id="checkin" />
+        </div>
+        <div class="form-group">
+          <label>退房日期</label>
+          <input type="date" id="checkout" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>房間數</label>
+        <div class="counter">
+          <button class="counter-btn" onclick="adjust('rooms',-1)">−</button>
+          <div class="counter-val" id="rooms-val">1</div>
+          <button class="counter-btn" onclick="adjust('rooms',1)">+</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>旅客人數（大人）</label>
+        <div class="counter">
+          <button class="counter-btn" onclick="adjust('adults',-1)">−</button>
+          <div class="counter-val" id="adults-val">2</div>
+          <button class="counter-btn" onclick="adjust('adults',1)">+</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>預算上限（每晚 TWD）</label>
+        <input type="number" id="budget" placeholder="不限" min="0" step="500" />
+      </div>
+
+      <div class="form-group">
+        <label>距捷運／地鐵站</label>
+        <select id="metro">
+          <option value="">不限</option>
+          <option value="200">步行 3 分鐘內（~200m）</option>
+          <option value="500">步行 5 分鐘內（~500m）</option>
+          <option value="1000">步行 10 分鐘內（~1km）</option>
+          <option value="1500">步行 15 分鐘內（~1.5km）</option>
+          <option value="3000">車程 10 分鐘內（~3km）</option>
+        </select>
+      </div>
+
+      <div class="form-group full">
+        <label>房間大小偏好</label>
+        <div class="platforms-grid" id="roomSizeGroup">
+          <label class="platform-chip active"><input type="radio" name="roomsize" value="" checked onchange="updateRadioChips('roomsize')"><span class="chip-radio">✓</span> 不限</label>
+          <label class="platform-chip"><input type="radio" name="roomsize" value="small" onchange="updateRadioChips('roomsize')"><span class="chip-radio">✓</span> 小巧精緻（18㎡ 以下）</label>
+          <label class="platform-chip"><input type="radio" name="roomsize" value="medium" onchange="updateRadioChips('roomsize')"><span class="chip-radio">✓</span> 標準舒適（18–30㎡）</label>
+          <label class="platform-chip"><input type="radio" name="roomsize" value="large" onchange="updateRadioChips('roomsize')"><span class="chip-radio">✓</span> 寬敞大房（30–50㎡）</label>
+          <label class="platform-chip"><input type="radio" name="roomsize" value="suite" onchange="updateRadioChips('roomsize')"><span class="chip-radio">✓</span> 套房等級（50㎡ 以上）</label>
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label>床型偏好</label>
+        <div class="platforms-grid" id="bedTypeGroup">
+          <label class="platform-chip active"><input type="radio" name="bedtype" value="" checked onchange="updateRadioChips('bedtype')"><span class="chip-radio">✓</span> 不限</label>
+          <label class="platform-chip"><input type="radio" name="bedtype" value="single" onchange="updateRadioChips('bedtype')"><span class="chip-radio">✓</span> 🛏 單人床（Single）</label>
+          <label class="platform-chip"><input type="radio" name="bedtype" value="double" onchange="updateRadioChips('bedtype')"><span class="chip-radio">✓</span> 🛏 雙人床（Double / Queen）</label>
+          <label class="platform-chip"><input type="radio" name="bedtype" value="king" onchange="updateRadioChips('bedtype')"><span class="chip-radio">✓</span> 🛌 大床（King Size）</label>
+          <label class="platform-chip"><input type="radio" name="bedtype" value="twin" onchange="updateRadioChips('bedtype')"><span class="chip-radio">✓</span> 🛏🛏 雙床（Twin）</label>
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label>特殊需求 / 設施偏好</label>
+        <input type="text" id="amenities" placeholder="例：附早餐、游泳池、寵物友善、停車場、高樓景觀…" />
+      </div>
+
+      <div class="form-group full">
+        <label>搜尋平台</label>
+        <div class="platforms-grid" id="platforms">
+          <label class="platform-chip active"><input type="checkbox" value="Booking.com" checked onchange="toggleChip(this)"><span class="chip-check">✓</span> Booking.com</label>
+          <label class="platform-chip active"><input type="checkbox" value="Agoda" checked onchange="toggleChip(this)"><span class="chip-check">✓</span> Agoda</label>
+          <label class="platform-chip active"><input type="checkbox" value="Hotels.com" checked onchange="toggleChip(this)"><span class="chip-check">✓</span> Hotels.com</label>
+          <label class="platform-chip active"><input type="checkbox" value="Expedia" checked onchange="toggleChip(this)"><span class="chip-check">✓</span> Expedia</label>
+          <label class="platform-chip active"><input type="checkbox" value="Trip.com" checked onchange="toggleChip(this)"><span class="chip-check">✓</span> Trip.com</label>
+          <label class="platform-chip"><input type="checkbox" value="Airbnb" onchange="toggleChip(this)"><span class="chip-check">✓</span> Airbnb</label>
+          <label class="platform-chip"><input type="checkbox" value="Klook" onchange="toggleChip(this)"><span class="chip-check">✓</span> Klook</label>
+          <label class="platform-chip active"><input type="checkbox" value="Trivago" checked onchange="toggleChip(this)"><span class="chip-check">✓</span> Trivago</label>
+        </div>
+      </div>
+
+    </div>
+
+    <button class="search-btn" id="searchBtn" onclick="doSearch()">
+      <span id="btnText">✦ 開始搜尋最佳房型</span>
+    </button>
+
+    <div class="loading-bar" id="loadingBar"></div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="resultsSection" style="display:none;">
+    <div class="results-header">
+      <div class="results-title" id="resultsTitle">搜尋結果</div>
+      <div class="results-meta" id="resultsMeta"></div>
+    </div>
+    <div class="sort-row" id="sortRow"></div>
+    <div class="cards-grid" id="cardsGrid"></div>
+  </div>
+
+  <div id="emptyState" class="empty" style="display:none;">
+    <div class="empty-icon">🔍</div>
+    <div class="empty-text">輸入目的地與日期，開始探索理想住宿</div>
+  </div>
+
+</main>
+
+<script>
+const counters = { rooms: { val: 1, min: 1, max: 10 }, adults: { val: 2, min: 1, max: 20 } };
+
+function adjust(key, delta) {
+  const c = counters[key];
+  c.val = Math.min(c.max, Math.max(c.min, c.val + delta));
+  document.getElementById(key + '-val').textContent = c.val;
+}
+
+function toggleChip(cb) {
+  cb.closest('.platform-chip').classList.toggle('active', cb.checked);
+}
+
+function updateRadioChips(name) {
+  document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+    r.closest('.platform-chip').classList.toggle('active', r.checked);
+  });
+}
+
+// Set default dates
+(function() {
+  const today = new Date();
+  const checkin = new Date(today); checkin.setDate(today.getDate() + 7);
+  const checkout = new Date(today); checkout.setDate(today.getDate() + 9);
+  const fmt = d => d.toISOString().split('T')[0];
+  document.getElementById('checkin').value = fmt(checkin);
+  document.getElementById('checkout').value = fmt(checkout);
+})();
+
+function getSelectedPlatforms() {
+  return [...document.querySelectorAll('#platforms input:checked')].map(i => i.value);
+}
+
+async function doSearch() {
+  const destination = document.getElementById('destination').value.trim();
+  if (!destination) {
+    alert('請輸入目的地！');
+    return;
+  }
+  const checkin = document.getElementById('checkin').value;
+  const checkout = document.getElementById('checkout').value;
+  if (!checkin || !checkout || checkin >= checkout) {
+    alert('請輸入有效的入住與退房日期！');
+    return;
+  }
+  const platforms = getSelectedPlatforms();
+  if (!platforms.length) {
+    alert('請至少選擇一個搜尋平台！');
+    return;
+  }
+
+  const budget = document.getElementById('budget').value;
+  const metro = document.getElementById('metro').value;
+  const roomsize = document.querySelector('input[name="roomsize"]:checked')?.value || '';
+  const bedtype = document.querySelector('input[name="bedtype"]:checked')?.value || '';
+  const amenities = document.getElementById('amenities').value.trim();
+  const rooms = counters.rooms.val;
+  const adults = counters.adults.val;
+
+  const roomSizeLabel = { '': '', small: '小巧精緻（18㎡ 以下）', medium: '標準舒適（18–30㎡）', large: '寬敞大房（30–50㎡）', suite: '套房等級（50㎡ 以上）' };
+  const bedTypeLabel = { '': '', single: '單人床 Single', double: '雙人床 Double/Queen', king: '大床 King Size', twin: '雙床 Twin' };
+  const metroLabel = { '': '', '200': '步行3分鐘內(200m)', '500': '步行5分鐘內(500m)', '1000': '步行10分鐘內(1km)', '1500': '步行15分鐘內(1.5km)', '3000': '車程10分鐘內(3km)' };
+
+  // Nights
+  const nights = Math.round((new Date(checkout) - new Date(checkin)) / 86400000);
+
+  // Build prompt
+  const prompt = `你是一個飯店搜尋專家。請根據以下條件，模擬在各大訂房網站搜尋並推薦 6 間適合的飯店房型（每個結果用 JSON array 格式）。
+
+搜尋條件：
+- 目的地：${destination}
+- 入住：${checkin}，退房：${checkout}（共 ${nights} 晚）
+- 房間數：${rooms} 間，大人：${adults} 人
+${budget ? `- 預算上限：每晚 TWD ${parseInt(budget).toLocaleString()}` : '- 預算：不限'}
+${roomsize ? `- 房間大小：${roomSizeLabel[roomsize]}` : ''}
+${bedtype ? `- 床型偏好：${bedTypeLabel[bedtype]}` : ''}
+${metro ? `- 距捷運/地鐵：${metroLabel[metro]}` : ''}
+${amenities ? `- 特殊需求：${amenities}` : ''}
+- 搜尋平台：${platforms.join('、')}
+
+請回傳一個 JSON array，每個物件含以下欄位（不要輸出其他文字，只輸出 JSON）：
+[
+  {
+    "platform": "平台名稱（從搜尋平台清單中選）",
+    "hotelName": "飯店名稱（中文或當地語言）",
+    "roomType": "房型名稱",
+    "location": "地址或區域描述",
+    "stars": 數字（1-5）,
+    "rating": 數字（6.0-9.9）,
+    "ratingLabel": "評價標籤（如：超讚、很好、不錯）",
+    "roomSizeSqm": 數字（房間實際坪數，㎡），
+    "bedType": "床型描述（如：King Size 大床、雙人床、雙床 Twin）",
+    "metroDistance": 數字（距最近捷運/地鐵站公尺數，整數）,
+    "metroStation": "最近捷運/地鐵站名稱",
+    "pricePerNight": 數字（TWD，合理範圍），
+    "totalPrice": 數字（pricePerNight × ${nights}），
+    "tags": ["標籤1","標籤2","標籤3"],
+    "emoji": "代表飯店的 emoji",
+    "highlight": "一句話亮點描述（中文，20字內）",
+    "url": "訂房連結（使用真實平台的搜尋 URL 格式，含目的地參數）"
+  }
+]
+
+請確保推薦多樣化（不同平台、不同價位），價格合理反映當地市場水平。每間飯店的 metroDistance 要根據目的地真實情況給出合理數值。`;
+
+  // UI: loading
+  const btn = document.getElementById('searchBtn');
+  const btnText = document.getElementById('btnText');
+  const loadingBar = document.getElementById('loadingBar');
+  const errorMsg = document.getElementById('errorMsg');
+  const resultsSection = document.getElementById('resultsSection');
+  const emptyState = document.getElementById('emptyState');
+
+  btn.disabled = true;
+  btnText.textContent = '搜尋中…';
+  loadingBar.classList.add('active');
+  errorMsg.classList.remove('show');
+  resultsSection.style.display = 'none';
+  emptyState.style.display = 'none';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 3000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+
+    // Check API-level error
+    if (data.error || !data.content) {
+      const apiErr = new Error('API responded with error');
+      apiErr._apiError = data.error?.message || data.error?.type || JSON.stringify(data);
+      throw apiErr;
+    }
+
+    const text = data.content.map(i => i.text || '').join('');
+    const clean = text.replace(/```json[\s\S]*?```|```/g, '').trim();
+
+    let hotels;
+    try {
+      hotels = JSON.parse(clean);
+    } catch(pe) {
+      const parseErr = new Error('parse failed');
+      parseErr._parseError = pe.message + '（原始回應：' + clean.slice(0,120) + '…）';
+      throw parseErr;
+    }
+
+    renderResults(hotels, destination, checkin, checkout, nights, platforms);
+  } catch (err) {
+    let msg = '搜尋時發生錯誤';
+    if (err._apiError) {
+      msg = `API 錯誤：${err._apiError}`;
+    } else if (err._parseError) {
+      msg = `回應解析失敗：${err._parseError}`;
+    } else if (err.message) {
+      msg = `錯誤：${err.message}`;
+    }
+    errorMsg.innerHTML = `<strong>⚠ ${msg}</strong><br><small style="opacity:.7">請確認網路連線，或稍後再試。</small>`;
+    errorMsg.classList.add('show');
+    emptyState.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = '✦ 開始搜尋最佳房型';
+    loadingBar.classList.remove('active');
+  }
+}
+
+let allHotels = [];
+let currentSort = 'price';
+
+function renderResults(hotels, destination, checkin, checkout, nights, platforms) {
+  allHotels = hotels;
+  currentSort = 'price';
+
+  const resultsSection = document.getElementById('resultsSection');
+  const resultsTitle = document.getElementById('resultsTitle');
+  const resultsMeta = document.getElementById('resultsMeta');
+  const sortRow = document.getElementById('sortRow');
+
+  resultsSection.style.display = 'block';
+  resultsTitle.textContent = `${destination} — 找到 ${hotels.length} 筆結果`;
+  resultsMeta.textContent = `${checkin} → ${checkout}（${nights} 晚）• ${platforms.length} 個平台`;
+
+  sortRow.innerHTML = `
+    <button class="sort-btn active" onclick="sortCards('price', this)">價格 ↑</button>
+    <button class="sort-btn" onclick="sortCards('rating', this)">評分 ↓</button>
+    <button class="sort-btn" onclick="sortCards('metro', this)">近捷運 ↑</button>
+    <button class="sort-btn" onclick="sortCards('size', this)">坪數 ↓</button>
+  `;
+
+  renderCards(hotels);
+}
+
+function sortCards(key, btn) {
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSort = key;
+  let sorted = [...allHotels];
+  if (key === 'price') sorted.sort((a,b) => a.pricePerNight - b.pricePerNight);
+  if (key === 'rating') sorted.sort((a,b) => b.rating - a.rating);
+  if (key === 'stars') sorted.sort((a,b) => b.stars - a.stars);
+  if (key === 'metro') sorted.sort((a,b) => (a.metroDistance||9999) - (b.metroDistance||9999));
+  if (key === 'size') sorted.sort((a,b) => (b.roomSizeSqm||0) - (a.roomSizeSqm||0));
+  renderCards(sorted);
+}
+
+function renderCards(hotels) {
+  const grid = document.getElementById('cardsGrid');
+  grid.innerHTML = hotels.map((h, i) => {
+    const stars = '★'.repeat(h.stars) + '☆'.repeat(5 - h.stars);
+    const tags = (h.tags || []).slice(0,3).map(t => `<span class="tag">${t}</span>`).join('');
+    const price = typeof h.pricePerNight === 'number' ? h.pricePerNight.toLocaleString() : h.pricePerNight;
+    const total = typeof h.totalPrice === 'number' ? h.totalPrice.toLocaleString() : '';
+
+    return `
+      <div class="hotel-card" style="animation-delay:${i*0.07}s">
+        <div class="card-img">${h.emoji || '🏨'}</div>
+        <div class="card-body">
+          <div class="card-platform">${h.platform}</div>
+          <div class="card-name">${h.hotelName}</div>
+          <div class="card-location">📍 ${h.location}</div>
+          <div class="card-stars">${stars}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <div class="rating-badge">${h.rating} <span style="font-size:10px;font-weight:400;">${h.ratingLabel || ''}</span></div>
+            ${h.roomSizeSqm ? `<span style="background:var(--sand);padding:4px 10px;border-radius:2px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;">${h.roomSizeSqm} ㎡</span>` : ''}
+          </div>
+          ${h.bedType ? `<div style="font-size:12px;margin-bottom:8px;">🛏 ${h.bedType}</div>` : ''}
+          ${h.metroStation ? `<div style="font-size:12px;margin-bottom:10px;color:var(--sage);">🚇 ${h.metroStation}（${h.metroDistance ? (h.metroDistance >= 1000 ? (h.metroDistance/1000).toFixed(1)+'km' : h.metroDistance+'m') : '?'}）</div>` : ''}
+          <div class="card-tags">${tags}</div>
+          <div style="font-size:12px;color:rgba(26,18,9,0.6);margin-bottom:12px;font-style:italic;">${h.highlight || ''}</div>
+          <div class="card-footer">
+            <div>
+              <div class="card-price-label">每晚 / 房</div>
+              <div class="card-price">TWD ${price} <small>/ 晚</small></div>
+              ${total ? `<div style="font-family:'Space Mono',monospace;font-size:10px;color:rgba(26,18,9,0.4);margin-top:2px;">合計 TWD ${total}</div>` : ''}
+            </div>
+            <a href="${h.url || '#'}" target="_blank" class="card-btn">前往訂房 →</a>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+</script>
+
+</body>
+</html>
